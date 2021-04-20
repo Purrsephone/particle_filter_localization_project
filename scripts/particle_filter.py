@@ -123,8 +123,24 @@ class ParticleFilter:
 
     def initialize_particle_cloud(self):
         
-        # TODO
+        # TODO 
+        # Figure out height and width of world 
+        width = self.map.info.width
+        height = self.map.info.height
 
+        print(self.map.info) # inspect the info of our world
+
+        # Initialize our particle cloud to be the size of our map
+        self.particle_cloud = [[None]*width]*height
+
+        print(self.particle_cloud) # test particle cloud before initializing
+
+        # Set each particles x and y locations evenly throughout the map and set all of their weights to 0
+        for i in range(width):
+            for j in range(height):
+                self.particle_cloud[i][j] = [i, j, 0]
+        
+        print(self.particle_cloud) # test particle cloud after initializing
 
         self.normalize_particles()
 
@@ -135,6 +151,7 @@ class ParticleFilter:
         # make all the particle weights sum to 1.0
         
         # TODO
+        pass
 
 
 
@@ -164,6 +181,7 @@ class ParticleFilter:
     def resample_particles(self):
 
         # TODO
+        pass
 
 
 
@@ -243,12 +261,14 @@ class ParticleFilter:
         # based on the particles within the particle cloud, update the robot pose estimate
         
         # TODO
+        pass
 
 
     
     def update_particle_weights_with_measurement_model(self, data):
 
         # TODO
+        pass
 
 
         
@@ -259,6 +279,7 @@ class ParticleFilter:
         # all of the particles correspondingly
 
         # TODO
+        pass
 
 
 
