@@ -18,6 +18,15 @@ import math
 
 from random import randint, random
 
+# Haha is this ok pt 2
+from likelihood_field import LikelihoodField
+def compute_prob_zero_centered_gaussian(dist, sd):
+    """ Takes in distance from zero (dist) and standard deviation (sd) for gaussian
+        and returns probability (likelihood) of observation """
+    c = 1.0 / (sd * math.sqrt(2 * math.pi))
+    prob = c * math.exp((-math.pow(dist,2))/(2 * math.pow(sd, 2)))
+    return prob
+
 
 
 def get_yaw_from_pose(p):
@@ -38,6 +47,7 @@ def draw_random_sample():
     We recommend that you fill in this function using random_sample.
     """
     # TODO
+    # why do we want a random sample? does it depend on probability at all?
     return
 
 
@@ -73,6 +83,9 @@ class ParticleFilter:
 
         # inialize our map
         self.map = OccupancyGrid()
+
+        # haha are we supposed to do this part 3
+        self.likelihood_field = LikelihoodField()
 
         # the number of particles used in the particle filter
         self.num_particles = 10000
@@ -183,17 +196,15 @@ class ParticleFilter:
         # Re-weigh each particle (normalize them)
         for part in self.particle_cloud:
             part.w = part.w / proportion
+            #print(part.w) # this is useless
 
         print("sum = " + str(sum) + "\t prop = " + str(proportion)) # test normalize particles fn
-
 
     def publish_particle_cloud(self):
 
         particle_cloud_pose_array = PoseArray()
         particle_cloud_pose_array.header = Header(stamp=rospy.Time.now(), frame_id=self.map_topic)
         particle_cloud_pose_array.poses
-
-        # why are our particles in the particle clouds supposed to have poses
         for part in self.particle_cloud:
             particle_cloud_pose_array.poses.append(part.pose)
 
@@ -214,6 +225,8 @@ class ParticleFilter:
     def resample_particles(self):
 
         # TODO
+
+        # we should probably use that random function at the top that i didnt do yet here i think
         pass
 
 
@@ -301,10 +314,39 @@ class ParticleFilter:
     def update_particle_weights_with_measurement_model(self, data):
 
         # TODO
-        pass
 
+        # Should use this for full list of directions
+        allDirections = range(360)
 
-        
+        # Starting with cardinal directions to save time
+        cardinal_directions_idxs = [0, 90, 180, 270]
+
+        # Code taken from in-class exercise
+        for particle in self.particle_cloud:
+            q = 1 #shouldnt q be one level above? update i moved one level up i hope this is right
+            for direction in cardinal_directions_idxs:
+                quat_array = []
+                quat_array.append(particle.pose.orientation.x)
+                quat_array.append(particle.pose.orientation.y)
+                quat_array.append(particle.pose.orientation.z)
+                quat_array.append(particle.pose.orientation.w)
+                euler_points = euler_from_quaternion(quat_array)
+                ztk = euler_points[2] 
+                if(data.ranges[direction] <= 3.5):
+                    xztk = particle.pose.orientation.x + (data.ranges[direction] * math.cos(ztk+ math.radians(direction)))
+                    yztk = particle.pose.orientation.y  + (data.ranges[direction] * math.sin(ztk + math.radians(direction)))
+                    dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
+                    print("direction:")
+                    print(direction)
+                    print("dist:")
+                    print(dist)
+                    q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
+                    print("q:")
+                    print(q)
+                    print("\n")
+                else:
+                    print("too far")
+            particle.w = q
 
     def update_particles_with_motion_model(self):
 
@@ -313,8 +355,6 @@ class ParticleFilter:
 
         # TODO
         pass
-
-
 
 if __name__=="__main__":
     
