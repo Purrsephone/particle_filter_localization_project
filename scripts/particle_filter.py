@@ -122,26 +122,47 @@ class ParticleFilter:
     
 
     def initialize_particle_cloud(self):
-        
+
         # TODO 
         # Figure out height and width of world 
         width = self.map.info.width
         height = self.map.info.height
 
-        print(self.map.info) # inspect the info of our world
+        # create a scale to normalize our particles by 
+        w_scale = width // 100
+        h_scale = height // 100
 
+        # set all our initial particles
+        initial_particle_set = []
+        for i in range(100):
+            for j in range(100):
+                initial_particle_set.append([i*w_scale, j*h_scale, 0])
+
+        print(initial_particle_set)
+        print(len(initial_particle_set))
         # Initialize our particle cloud to be the size of our map
-        self.particle_cloud = [[None]*width]*height
+        self.particle_cloud = []
 
-        print(self.particle_cloud) # test particle cloud before initializing
+        for i in range(len(initial_particle_set)):
+            p = Pose()
+            p.position = Point()
+            p.position.x = initial_particle_set[i][0]
+            p.position.y = initial_particle_set[i][1]
+            p.position.z = 0
+            p.orientation = Quaternion()
+            q = quaternion_from_euler(0.0, 0.0, initial_particle_set[i][2])
+            p.orientation.x = q[0]
+            p.orientation.y = q[1]
+            p.orientation.z = q[2]
+            p.orientation.w = q[3]
 
-        # Set each particles x and y locations evenly throughout the map and set all of their weights to 0
-        for i in range(width):
-            for j in range(height):
-                self.particle_cloud[i][j] = [i, j, 0]
-        
-        print(self.particle_cloud) # test particle cloud after initializing
+            # initialize the new particle, where all will have the same weight (1.0)
+            new_particle = Particle(p, 1.0)
 
+            # append the particle to the particle cloud
+            self.particle_cloud.append(new_particle)
+
+        # END
         self.normalize_particles()
 
         self.publish_particle_cloud()
@@ -151,8 +172,19 @@ class ParticleFilter:
         # make all the particle weights sum to 1.0
         
         # TODO
-        pass
+        # create sum object to hold total weights
+        sum = 0
+        for part in self.particle_cloud:
+            sum += part.w
 
+        # Calculate the number to dive each weight by
+        proportion = sum / len(self.particle_cloud)
+
+        # Re-weigh each particle (normalize them)
+        for part in self.particle_cloud:
+            part.w = part.w / proportion
+
+        print("sum = " + str(sum) + "\t prop = " + str(proportion)) # test normalize particles fn
 
 
     def publish_particle_cloud(self):
@@ -161,6 +193,7 @@ class ParticleFilter:
         particle_cloud_pose_array.header = Header(stamp=rospy.Time.now(), frame_id=self.map_topic)
         particle_cloud_pose_array.poses
 
+        # why are our particles in the particle clouds supposed to have poses
         for part in self.particle_cloud:
             particle_cloud_pose_array.poses.append(part.pose)
 
