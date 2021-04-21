@@ -83,6 +83,8 @@ class LikelihoodFieldMeasurementUpdate(object):
 
         self.particle_cloud = []
 
+        print(self.map.data)
+
 
         for i in range(len(initial_particle_set)):
             p = Pose()
@@ -154,21 +156,19 @@ class LikelihoodFieldMeasurementUpdate(object):
                     xztk = particle.pose.orientation.x + (data.ranges[direction] * math.cos(ztk+ math.radians(direction)))
                     yztk = particle.pose.orientation.y  + (data.ranges[direction] * math.sin(ztk + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                    print("direction:")
-                    print(direction)
-                    print("dist:")
-                    print(dist)
+                    # print("direction:")
+                    # print(direction)
+                    # print("dist:")
+                    # print(dist)
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
-                    print("q:")
-                    print(q)
-                    print("\n")
-                else:
-                    print("too far")
+                #     print("q:")
+                #     print(q)
+                #     print("\n")
+                # else:
+                #     print("too far")
 
                 
     
-
-
     def run(self):
         r = rospy.Rate(1)
         while not rospy.is_shutdown():

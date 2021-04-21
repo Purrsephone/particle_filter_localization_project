@@ -42,13 +42,15 @@ def get_yaw_from_pose(p):
     return yaw
 
 
-def draw_random_sample():
+def draw_random_sample(lst,probs,n):
     """ Draws a random sample of n elements from a given list of choices and their specified probabilities.
     We recommend that you fill in this function using random_sample.
     """
     # TODO
     # why do we want a random sample? does it depend on probability at all?
-    return
+
+    ret_list = np.random.choice(lst, n, replace=True, p=probs)
+    return ret_list
 
 
 class Particle:
@@ -141,9 +143,28 @@ class ParticleFilter:
         width = self.map.info.width
         height = self.map.info.height
 
+
+        print(len(self.map.data))
+        total = 0
+        for i in range(147456):
+            if self.map.data[i] == 0:
+                total += 1
+        print(total)
+
+        #map is a 384 x 384 grid
+
         # create a scale to normalize our particles by 
         w_scale = width // 100
         h_scale = height // 100
+
+        # create a new array that stores the locations of points that are empty
+        full_array = []
+        for i in range(width):
+            for j in range(height):
+                print(i*width+j)
+                if self.map.data[i*width+j] == 0:
+                    full_array.append([i,j])
+        print(full_array)
 
         # set all our initial particles
         initial_particle_set = []
@@ -151,8 +172,10 @@ class ParticleFilter:
             for j in range(100):
                 initial_particle_set.append([i*w_scale, j*h_scale, 0])
 
-        print(initial_particle_set)
-        print(len(initial_particle_set))
+        #print(initial_particle_set)
+        #print(len(initial_particle_set))
+
+
         # Initialize our particle cloud to be the size of our map
         self.particle_cloud = []
 
@@ -336,13 +359,10 @@ class ParticleFilter:
                     xztk = particle.pose.orientation.x + (data.ranges[direction] * math.cos(ztk+ math.radians(direction)))
                     yztk = particle.pose.orientation.y  + (data.ranges[direction] * math.sin(ztk + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                    print("direction:")
-                    print(direction)
-                    print("dist:")
-                    print(dist)
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
-                    print("q:")
-                    print(q)
+                    print("direction:" + str(direction))
+                    print("dist:"+str(dist))
+                    print("q:"+str(q))
                     print("\n")
                 else:
                     print("too far")
