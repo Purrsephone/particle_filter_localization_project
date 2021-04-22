@@ -19,7 +19,7 @@ import random as rand
 
 from random import randint, random
 
-# Haha is this ok pt 2
+# Import functions from other files
 from likelihood_field import LikelihoodField
 def compute_prob_zero_centered_gaussian(dist, sd):
     """ Takes in distance from zero (dist) and standard deviation (sd) for gaussian
@@ -30,11 +30,8 @@ def compute_prob_zero_centered_gaussian(dist, sd):
 
 #given an index and info about map, compute its real coordinate 
 def convert_to_real_coords(indx, height, orx, ory, res):
-    if(indx < height):
-        x_val = indx
-    else:
-        x_val = indx % height 
-
+    
+    x_val = indx % height 
     y_val = math.floor(indx/height)
 
     x_coord = orx + (x_val * res)
@@ -43,7 +40,7 @@ def convert_to_real_coords(indx, height, orx, ory, res):
     return(coords)
 
 #test function, should return -9.7, -9.95
-print(convert_to_real_coords(390, 384, -10, -10, 0.05))
+#print(convert_to_real_coords(390, 384, -10, -10, 0.05))
 
 def get_yaw_from_pose(p):
     """ A helper function that takes in a Pose object (geometry_msgs) and returns yaw"""
@@ -62,14 +59,30 @@ def draw_random_sample(cloud,probs,n):
     """ Draws a random sample of n elements from a given list of choices and their specified probabilities.
     We recommend that you fill in this function using random_sample.
     """
+    # All test code -------
+    sum = 0
+    for part in cloud:
+        sum += part.w
+    print("original sum = " + str(sum))
+    # ---------------------
+
     # create a new array of n sampled particles from our cloud
     new_cloud = rand.choices(cloud, weights = probs, k=n) 
+
+    # All test code -------
+    sum = 0
+    for part in new_cloud:
+        sum += part.w
+        #print(part.w)
+    print("new sum = " + str(sum))
+    # ---------------------
+
     return new_cloud
 
 #let's test this boy 
-test_cloud = [5, 19, 23, 67, 100, 245, 316, 325, 388, 567, 891, 905, 936, 999]
-test_probs = [0, 1, 8, 0, 5, 10, 0, 0, 1, 0, 2, 0, 15, 0]
-print(draw_random_sample(test_cloud, test_probs, 14))
+# test_cloud = [5, 19, 23, 67, 100, 245, 316, 325, 388, 567, 891, 905, 936, 999]
+# test_probs = [0, 1, 8, 0, 5, 10, 0, 0, 1, 0, 2, 0, 15, 0]
+# print(draw_random_sample(test_cloud, test_probs, 14))
 
 class Particle:
 
@@ -146,7 +159,6 @@ class ParticleFilter:
         self.initialized = True
 
 
-
     def get_map(self, data):
 
         self.map = data
@@ -158,12 +170,9 @@ class ParticleFilter:
         # Figure out height and width of world 
         width = self.map.info.width
         height = self.map.info.height
-        #print("ORIGIN")
-        #print(self.map.info.origin)
-        #print(self.map.info.resolution)
-        #print(len(self.map.data))
+        print(height*width)
         total = 0
-        for i in range(147456):
+        for i in range(width * height):
             if self.map.data[i] == 0:
                 total += 1
         print(total)
@@ -196,7 +205,7 @@ class ParticleFilter:
             part.append(rand_orientation)
             initial_particle_set.append(part)
 
-
+        #print(initial_particle_set)
         # Initialize our particle cloud to be the size of our map
         self.particle_cloud = []
 
@@ -235,10 +244,12 @@ class ParticleFilter:
         for part in self.particle_cloud:
             sum += part.w
 
-        # Re-weigh each particle (normalize them)
-        for part in self.particle_cloud:
-            part.w = part.w / sum
-            #print(part.w) # this is useless
+        # make sure we dont divide by zero
+        if sum != 0:
+            # Re-weigh each particle (normalize them)
+            for part in self.particle_cloud:
+                part.w = part.w / sum
+                #print(part.w) # this is useless
 
         print("sum = " + str(sum)) # test normalize particles fn
 
@@ -265,7 +276,7 @@ class ParticleFilter:
 
     def resample_particles(self):
 
-        # 
+        # TODO
 
         # create 1D array of weights
         weights = []
@@ -274,13 +285,11 @@ class ParticleFilter:
             weights.append(part.w)
             check_sum += part.w
         
-        print("total weight: " + str(check_sum)) # test if weights sum to 1 or not
+        #print("total weight: " + str(check_sum)) # test if weights sum to 1 or not
 
         # use draw_random_sample to create a new particle cloud
         new_cloud = draw_random_sample(self.particle_cloud, weights, 10000)
         self.particle_cloud = new_cloud
-
-
 
     def robot_scan_received(self, data):
 
@@ -363,11 +372,13 @@ class ParticleFilter:
         #find total x and y locations
         totalx = 0
         totaly = 0
-        totalO = [0,0,0,0]
+        totalO = [0,0,0,0] # use eulers here
         for part in self.particle_cloud:
             pos = part.pose.position
             totalx += pos.x
             totaly += pos.y
+
+            # this is also wrong use eulers again
             p = part.pose
             totalO[0] += p.orientation.x
             totalO[1] += p.orientation.y
@@ -375,7 +386,7 @@ class ParticleFilter:
             totalO[3] += p.orientation.w 
 
         # calculate new locations
-        new_o = [totalO[0] / 10000, totalO[1] / 10000, totalO[2] / 10000, totalO[3] / 10000]
+        new_o = [totalO[0] / 10000, totalO[1] / 10000, totalO[2] / 10000, totalO[3] / 10000] # wrong
         new_x = totalx / 10000
         new_y = totaly / 10000
         #print("x = " + str(new_x) + "\ny = " + str(new_y)+ "\norientation = " + str(new_o))
@@ -383,6 +394,8 @@ class ParticleFilter:
         # set new robot estimate
         self.robot_estimate.position.x = new_x
         self.robot_estimate.position.y = new_y
+
+        # use eulers
         self.robot_estimate.orientation.x = new_o[0]
         self.robot_estimate.orientation.y = new_o[1]
         self.robot_estimate.orientation.z = new_o[2]
@@ -398,12 +411,11 @@ class ParticleFilter:
         allDirections = range(360)
 
         # Starting with cardinal directions to save time
-        cardinal_directions_idxs = [0, 90, 180, 270]
+        cardinal_directions_idxs = [0, 45, 90, 120, 180, 225, 270, 315]
 
         # Code taken from in-class exercise
-        print("HELLO?")
         for particle in self.particle_cloud:
-            q = 1 # I moved this here because otherwise it doesnt do anything
+            q = 1 
             for direction in cardinal_directions_idxs:
                 quat_array = []
                 quat_array.append(particle.pose.orientation.x)
@@ -418,21 +430,20 @@ class ParticleFilter:
                     yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
-                    particle.w = q 
+                    #particle.w = q 
                     #print(q)
                     # print(direction)
                     # print("dist: " + str(dist))
                     # print("q: " + str(q))
                     # print("\n")
-                #else: 
-                    #q = 0 
             if (math.isnan(q)):
+                #print(q)
                 q = 0
             particle.w = q 
 
         
-        for part in self.particle_cloud:
-            print(part)
+        # for part in self.particle_cloud:
+        #     print(part.w)
                     
             # print(q)
             # if q != "nan":
@@ -443,6 +454,8 @@ class ParticleFilter:
 
 
     def update_particles_with_motion_model(self):
+        # TODO
+
         x_old = self.odom_pose_last_motion_update.pose.position.x
         x_new = self.odom_pose.pose.position.x
         delta_x = x_new - x_old 
@@ -451,10 +464,20 @@ class ParticleFilter:
         y_new =  self.odom_pose.pose.position.y
         delta_y = y_new - y_old 
 
+        yaw_old = get_yaw_from_pose(self.odom_pose_last_motion_update.pose)
+        yaw_new = get_yaw_from_pose(self.odom_pose.pose)
+        delta_yaw = yaw_new - yaw_old 
+
+        yaw_to_quant = quaternion_from_euler(0.0, 0.0, delta_yaw)
+
+        # We need to use delta yaws here
+
+        # Dont use any of this
         deltax = self.odom_pose.pose.orientation.x - self.odom_pose_last_motion_update.pose.orientation.x
         deltay = self.odom_pose.pose.orientation.y - self.odom_pose_last_motion_update.pose.orientation.y
         deltaz = self.odom_pose.pose.orientation.z - self.odom_pose_last_motion_update.pose.orientation.z
         deltaw = self.odom_pose.pose.orientation.w - self.odom_pose_last_motion_update.pose.orientation.w
+
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
@@ -462,12 +485,21 @@ class ParticleFilter:
         for part in self.particle_cloud:
             part.pose.position.x += delta_x
             part.pose.position.y += delta_y
-            part.pose.orientation.x += deltax
-            part.pose.orientation.y += deltay
-            part.pose.orientation.z += deltaz
-            part.pose.orientation.w += deltaw
+
+            # this is wrong: convert to yaws
+            print(part.pose.orientation)
+            print(yaw_to_quant)
+            part.pose.orientation.z += yaw_to_quant[2]
+
+
+        # ADD NOISE HERE
+
+        # Add position noise
+        
+        # Add orientation noise
     
-        # TODO
+
+        
 
 if __name__=="__main__":
     
