@@ -365,28 +365,27 @@ class ParticleFilter:
 
         # Code taken from in-class exercise
         for particle in self.particle_cloud:
-            q = 1 #shouldnt q be one level above? update i moved one level up i hope this is right
             for direction in cardinal_directions_idxs:
+                q = 1 
+                quat_array = []
+                quat_array.append(particle.pose.orientation.x)
+                quat_array.append(particle.pose.orientation.y)
+                quat_array.append(particle.pose.orientation.z)
+                quat_array.append(particle.pose.orientation.w)
+                euler_points = euler_from_quaternion(quat_array)
+                theta = euler_points[2] 
+                ztk = data.ranges[direction]
                 if(data.ranges[direction] <= 3.5):
-                    quat_array = []
-                    quat_array.append(particle.pose.orientation.x)
-                    quat_array.append(particle.pose.orientation.y)
-                    quat_array.append(particle.pose.orientation.z)
-                    quat_array.append(particle.pose.orientation.w)
-                    euler_points = euler_from_quaternion(quat_array)
-                    ztk = euler_points[2] # this is theta
-                    new_ztk = 0# laser scan
-                    xztk = particle.pose.orientation.x + (data.ranges[direction] * math.cos(ztk+ math.radians(direction)))
-                    yztk = particle.pose.orientation.y  + (data.ranges[direction] * math.sin(ztk + math.radians(direction)))
+                    xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
+                    yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
+                    print(direction)
+                    print("dist: " + str(dist))
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
-                #     print("direction:" + str(direction))
-                #     print("dist:" + str(dist))
-                #     print("q:" + str(q))
-                #     print("\n")
-                # else:
-                #     print("too far")
-            particle.w = q
+                    print("q: " + str(q))
+                    print("\n")
+                else:
+                    pass
 
     def update_particles_with_motion_model(self):
 
