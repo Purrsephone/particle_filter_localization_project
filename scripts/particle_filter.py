@@ -278,6 +278,7 @@ class ParticleFilter:
         self.laser_pose = self.tf_listener.transformPose(self.base_frame, p)
 
         # determine where the robot thinks it is based on its odometry
+        #use this important
         p = PoseStamped(
             header=Header(stamp=data.header.stamp,
                           frame_id=self.base_frame),
@@ -287,6 +288,7 @@ class ParticleFilter:
 
         # we need to be able to compare the current odom pose to the prior odom pose
         # if there isn't a prior odom pose, set the odom_pose variable to the current pose
+        #this is how far robot has moved
         if not self.odom_pose_last_motion_update:
             self.odom_pose_last_motion_update = self.odom_pose
             return
@@ -302,7 +304,8 @@ class ParticleFilter:
             old_y = self.odom_pose_last_motion_update.pose.position.y
             curr_yaw = get_yaw_from_pose(self.odom_pose.pose)
             old_yaw = get_yaw_from_pose(self.odom_pose_last_motion_update.pose)
-
+            print(curr_x)
+            print(old_x)
             if (np.abs(curr_x - old_x) > self.lin_mvmt_threshold or 
                 np.abs(curr_y - old_y) > self.lin_mvmt_threshold or
                 np.abs(curr_yaw - old_yaw) > self.ang_mvmt_threshold):
@@ -328,8 +331,24 @@ class ParticleFilter:
 
     def update_estimated_robot_pose(self):
         # based on the particles within the particle cloud, update the robot pose estimate
-        
+        # use average location of all particles
         # TODO
+
+        #find total x and y locations
+        totalx = 0
+        totaly = 0
+        totalO = [0,0,0,0]
+        for part in self.particle_cloud:
+            pos = part.pose.position
+            totalx += pos.x
+            totaly += pos.y
+            p = part.pose
+            totalO[0] += p.orientation.x
+            totalO[1] += p.orientation.y
+            totalO[2] += p.orientation.z
+            totalO[3] += p.orientation.w 
+        print("x = " + str(totalx/10000) + "\ny = " + str(totaly/10000)+ "\norientation = " + str(totalO))
+
         pass
 
 
@@ -348,24 +367,25 @@ class ParticleFilter:
         for particle in self.particle_cloud:
             q = 1 #shouldnt q be one level above? update i moved one level up i hope this is right
             for direction in cardinal_directions_idxs:
-                quat_array = []
-                quat_array.append(particle.pose.orientation.x)
-                quat_array.append(particle.pose.orientation.y)
-                quat_array.append(particle.pose.orientation.z)
-                quat_array.append(particle.pose.orientation.w)
-                euler_points = euler_from_quaternion(quat_array)
-                ztk = euler_points[2] 
                 if(data.ranges[direction] <= 3.5):
+                    quat_array = []
+                    quat_array.append(particle.pose.orientation.x)
+                    quat_array.append(particle.pose.orientation.y)
+                    quat_array.append(particle.pose.orientation.z)
+                    quat_array.append(particle.pose.orientation.w)
+                    euler_points = euler_from_quaternion(quat_array)
+                    ztk = euler_points[2] # this is theta
+                    new_ztk = 0# laser scan
                     xztk = particle.pose.orientation.x + (data.ranges[direction] * math.cos(ztk+ math.radians(direction)))
                     yztk = particle.pose.orientation.y  + (data.ranges[direction] * math.sin(ztk + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
-                    print("direction:" + str(direction))
-                    print("dist:"+str(dist))
-                    print("q:"+str(q))
-                    print("\n")
-                else:
-                    print("too far")
+                #     print("direction:" + str(direction))
+                #     print("dist:" + str(dist))
+                #     print("q:" + str(q))
+                #     print("\n")
+                # else:
+                #     print("too far")
             particle.w = q
 
     def update_particles_with_motion_model(self):
