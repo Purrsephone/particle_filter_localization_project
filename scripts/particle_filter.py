@@ -15,6 +15,7 @@ from tf.transformations import quaternion_from_euler, euler_from_quaternion
 import numpy as np
 from numpy.random import random_sample
 import math
+import random as rand 
 
 from random import randint, random
 
@@ -27,7 +28,22 @@ def compute_prob_zero_centered_gaussian(dist, sd):
     prob = c * math.exp((-math.pow(dist,2))/(2 * math.pow(sd, 2)))
     return prob
 
+#given an index and info about map, compute its real coordinate 
+def convert_to_real_coords(indx, height, orx, ory, res):
+    if(indx < height):
+        x_val = indx
+    else:
+        x_val = indx - height 
 
+    y_val = math.floor(indx/height)
+
+    x_coord = orx + (x_val * res)
+    y_coord = ory + (y_val * res)
+    coords = [x_coord, y_coord]
+    return(coords)
+
+#test function, should return -9.7, -9.95
+print(convert_to_real_coords(390, 384, -10, -10, 0.05))
 
 def get_yaw_from_pose(p):
     """ A helper function that takes in a Pose object (geometry_msgs) and returns yaw"""
@@ -41,7 +57,7 @@ def get_yaw_from_pose(p):
 
     return yaw
 
-
+#here, lst = lst of particle positions, n = 10,0000, probs = list of particle weights 
 def draw_random_sample(lst,probs,n):
     """ Draws a random sample of n elements from a given list of choices and their specified probabilities.
     We recommend that you fill in this function using random_sample.
@@ -142,9 +158,10 @@ class ParticleFilter:
         # Figure out height and width of world 
         width = self.map.info.width
         height = self.map.info.height
-
-
-        print(len(self.map.data))
+        #print("ORIGIN")
+        #print(self.map.info.origin)
+        #print(self.map.info.resolution)
+        #print(len(self.map.data))
         total = 0
         for i in range(147456):
             if self.map.data[i] == 0:
@@ -161,10 +178,24 @@ class ParticleFilter:
         full_array = []
         for i in range(width):
             for j in range(height):
-                print(i*width+j)
-                if self.map.data[i*width+j] == 0:
-                    full_array.append([i,j])
-        print(full_array)
+                #print(i*width+j)
+                indx = (i*width+j)
+                if self.map.data[indx] == 0:
+                    #changed this to append index rather than value 
+                    full_array.append(indx)
+        #print(full_array)
+
+        #nice, now let's pick 10000 of these indices 
+        pick_10000 = rand.sample(full_array, 10000)
+
+        for el in pick_10000:
+            #indx, height, orx, ory, res just hard coding in args for now 
+            el = convert_to_real_coords(el, 384, -10, -10, 0.05)
+            rand_orientation = np.random.randint(0, (2 * math.pi))
+            el.append(rand_orientation)
+        
+        print("x, y coords plus random orientations")
+        print(pick_10000)
 
         # set all our initial particles
         initial_particle_set = []
@@ -248,6 +279,7 @@ class ParticleFilter:
     def resample_particles(self):
 
         # TODO
+        #yup, as soon as we get our particle cloud init func working, we can call it 
 
         # we should probably use that random function at the top that i didnt do yet here i think
         pass
@@ -304,8 +336,8 @@ class ParticleFilter:
             old_y = self.odom_pose_last_motion_update.pose.position.y
             curr_yaw = get_yaw_from_pose(self.odom_pose.pose)
             old_yaw = get_yaw_from_pose(self.odom_pose_last_motion_update.pose)
-            print(curr_x)
-            print(old_x)
+            #print(curr_x)
+            #print(old_x)
             if (np.abs(curr_x - old_x) > self.lin_mvmt_threshold or 
                 np.abs(curr_y - old_y) > self.lin_mvmt_threshold or
                 np.abs(curr_yaw - old_yaw) > self.ang_mvmt_threshold):
@@ -388,9 +420,26 @@ class ParticleFilter:
                     pass
 
     def update_particles_with_motion_model(self):
+        x_old = self.odom_pose_last_motion_update.pose.position.x
+        x_new = self.odom_pose.pose.position.x
+        delta_x = x_new - x_old 
 
+        y_old = self.odom_pose_last_motion_update.pose.position.y
+        y_new =  self.odom_pose.pose.position.y
+        delta_y = y_new - y_old 
+
+        yaw_old = get_yaw_from_pose(self.odom_pose_last_motion_update.pose) 
+        yaw_new = get_yaw_from_pose(self.odom_pose.pose) 
+        delta_yaw = yaw_new - yaw_old  
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
+
+        #not sure if I am iterating thru this right 
+        for particle in self.particle_cloud:
+            pass
+            #.x + delta_x
+            #.y + delta_y 
+            #.z + delta_yaw 
 
         # TODO
         pass
