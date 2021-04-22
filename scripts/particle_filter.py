@@ -66,6 +66,10 @@ def draw_random_sample(cloud,probs,n):
     new_cloud = rand.choices(cloud, weights = probs, k=n) 
     return new_cloud
 
+#let's test this boy 
+test_cloud = [5, 19, 23, 67, 100, 245, 316, 325, 388, 567, 891, 905, 936, 999]
+test_probs = [0, 1, 8, 0, 5, 10, 0, 0, 1, 0, 2, 0, 15, 0]
+print(draw_random_sample(test_cloud, test_probs, 14))
 
 class Particle:
 
