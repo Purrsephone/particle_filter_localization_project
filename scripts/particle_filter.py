@@ -62,10 +62,8 @@ def draw_random_sample(cloud,probs,n):
     """ Draws a random sample of n elements from a given list of choices and their specified probabilities.
     We recommend that you fill in this function using random_sample.
     """
-    # TODO
-
     # create a new array of n sampled particles from our cloud
-    new_cloud = np.random.choice(cloud, n, replace=True, p=probs)
+    new_cloud = rand.choices(cloud, weights = probs, k=n) 
     return new_cloud
 
 
@@ -263,7 +261,7 @@ class ParticleFilter:
 
     def resample_particles(self):
 
-        # TODO
+        # 
 
         # create 1D array of weights
         weights = []
@@ -399,6 +397,7 @@ class ParticleFilter:
         cardinal_directions_idxs = [0, 90, 180, 270]
 
         # Code taken from in-class exercise
+        print("HELLO?")
         for particle in self.particle_cloud:
             q = 1 # I moved this here because otherwise it doesnt do anything
             for direction in cardinal_directions_idxs:
@@ -415,10 +414,22 @@ class ParticleFilter:
                     yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
                     q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
+                    particle.w = q 
+                    #print(q)
                     # print(direction)
                     # print("dist: " + str(dist))
                     # print("q: " + str(q))
                     # print("\n")
+                #else: 
+                    #q = 0 
+            if (math.isnan(q)):
+                q = 0
+            particle.w = q 
+
+        
+        for part in self.particle_cloud:
+            print(part)
+                    
             # print(q)
             # if q != "nan":
             #     particle.w = q
