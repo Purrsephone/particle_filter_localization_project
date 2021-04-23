@@ -170,12 +170,10 @@ class ParticleFilter:
         # Figure out height and width of world 
         width = self.map.info.width
         height = self.map.info.height
-        print(height*width)
         total = 0
         for i in range(width * height):
             if self.map.data[i] == 0:
                 total += 1
-        print(total)
 
         #map is a 384 x 384 grid
 
@@ -331,7 +329,7 @@ class ParticleFilter:
             return
 
 
-        if self.particle_cloud != []:
+        if self.particle_cloud:
 
             # check to see if we've moved far enough to perform an update
 
@@ -368,27 +366,32 @@ class ParticleFilter:
         # based on the particles within the particle cloud, update the robot pose estimate
         # use average location of all particles
         # TODO
+        #print(self.robot_estimate.position)
+        #print(self.robot_estimate.orientation)
 
         #find total x and y locations
         totalx = 0
         totaly = 0
-        totalO = [0,0,0,0] # use eulers here
+        total_yaw = 0
         for part in self.particle_cloud:
+            # set position
             pos = part.pose.position
             totalx += pos.x
             totaly += pos.y
 
-            # this is also wrong use eulers again
+            # set orientation
             p = part.pose
-            totalO[0] += p.orientation.x
-            totalO[1] += p.orientation.y
-            totalO[2] += p.orientation.z
-            totalO[3] += p.orientation.w 
+            total_yaw += get_yaw_from_pose(p)
 
         # calculate new locations
-        new_o = [totalO[0] / 10000, totalO[1] / 10000, totalO[2] / 10000, totalO[3] / 10000] # wrong
         new_x = totalx / 10000
         new_y = totaly / 10000
+
+        new_yaw = total_yaw / 10000
+        new_quat = quaternion_from_euler(0.0, 0.0, new_yaw)
+        # print("quat version of delta: " + str(quaternion_from_euler(0,0,new_delta)))
+        #print("old_yaw: " + str(new_yaw))
+       
         #print("x = " + str(new_x) + "\ny = " + str(new_y)+ "\norientation = " + str(new_o))
 
         # set new robot estimate
@@ -396,10 +399,10 @@ class ParticleFilter:
         self.robot_estimate.position.y = new_y
 
         # use eulers
-        self.robot_estimate.orientation.x = new_o[0]
-        self.robot_estimate.orientation.y = new_o[1]
-        self.robot_estimate.orientation.z = new_o[2]
-        self.robot_estimate.orientation.w = new_o[3]
+        self.robot_estimate.orientation.z = new_quat[2]
+        self.robot_estimate.orientation.w = new_quat[3]
+
+        #print("new_yaw: "+ str(get_yaw_from_pose(self.robot_estimate)))
 
 
     
@@ -429,15 +432,18 @@ class ParticleFilter:
                     xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
                     yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                     dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                    q = q * compute_prob_zero_centered_gaussian(dist, 0.1)
+                    prob = compute_prob_zero_centered_gaussian(dist, 0.1)
+                    if not (math.isnan(prob)):
+                        q = q * prob
+                    
                     #particle.w = q 
                     #print(q)
                     # print(direction)
                     # print("dist: " + str(dist))
                     # print("q: " + str(q))
                     # print("\n")
-            if (math.isnan(q)):
-                #print(q)
+            if (math.isnan(q)) or q == 1:
+                print(q)
                 q = 0
             particle.w = q 
 
@@ -471,25 +477,36 @@ class ParticleFilter:
         yaw_to_quant = quaternion_from_euler(0.0, 0.0, delta_yaw)
 
         # We need to use delta yaws here
-
-        # Dont use any of this
-        deltax = self.odom_pose.pose.orientation.x - self.odom_pose_last_motion_update.pose.orientation.x
-        deltay = self.odom_pose.pose.orientation.y - self.odom_pose_last_motion_update.pose.orientation.y
-        deltaz = self.odom_pose.pose.orientation.z - self.odom_pose_last_motion_update.pose.orientation.z
-        deltaw = self.odom_pose.pose.orientation.w - self.odom_pose_last_motion_update.pose.orientation.w
-
+        #do some heccin trig to figure out how much to move 
+        
+        
+       
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
         #not sure if I am iterating thru this right 
         for part in self.particle_cloud:
-            part.pose.position.x += delta_x
-            part.pose.position.y += delta_y
+            quat_array = []
+            quat_array.append(part.pose.orientation.x)
+            quat_array.append(part.pose.orientation.y)
+            quat_array.append(part.pose.orientation.z)
+            quat_array.append(part.pose.orientation.w)
+            euler_points = euler_from_quaternion(quat_array)
+            theta = euler_points[2] 
+            #rotation of axis, assume ccw ig 
+            new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
+            new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
+            print(new_x)
+            print(new_y)
+
+            part.pose.position.x += new_x 
+            part.pose.position.y += new_y 
+            part.pose.orientation.z += yaw_to_quant[2]
 
             # this is wrong: convert to yaws
-            print(part.pose.orientation)
-            print(yaw_to_quant)
-            part.pose.orientation.z += yaw_to_quant[2]
+            #print(part.pose.orientation)
+            #print(yaw_to_quant)
+            #part.pose.orientation.z += yaw_to_quant[2]
 
 
         # ADD NOISE HERE
@@ -497,6 +514,31 @@ class ParticleFilter:
         # Add position noise
         
         # Add orientation noise
+'''
+    
+def testy_boi(lst, delta_x, delta_y):
+    for el in lst: 
+        theta = el[2]
+        #rotation of axis, assume ccw ig 
+        new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
+        new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
+
+        el[0] += new_x 
+        el[1] += new_y 
+        #el[2] += yaw_to_quant
+    return lst 
+
+test_lst = [[0,0,1.5], [2,3,0.5], [-5,-6, 6.1], [8,9,4.3]]
+'''
+'''
+expect 
+4.2, -2.7
+6.5, 5.07 
+-2.7, -1.5 
+3.2, 10.1
+'''
+
+#print(testy_boi(test_lst, 3, 4))
     
 
         
