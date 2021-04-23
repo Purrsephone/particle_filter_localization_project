@@ -471,25 +471,29 @@ class ParticleFilter:
         yaw_to_quant = quaternion_from_euler(0.0, 0.0, delta_yaw)
 
         # We need to use delta yaws here
-
-        # Dont use any of this
-        deltax = self.odom_pose.pose.orientation.x - self.odom_pose_last_motion_update.pose.orientation.x
-        deltay = self.odom_pose.pose.orientation.y - self.odom_pose_last_motion_update.pose.orientation.y
-        deltaz = self.odom_pose.pose.orientation.z - self.odom_pose_last_motion_update.pose.orientation.z
-        deltaw = self.odom_pose.pose.orientation.w - self.odom_pose_last_motion_update.pose.orientation.w
-
+        #do some heccin trig to figure out how much to move 
+        
+        
+       
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
         #not sure if I am iterating thru this right 
         for part in self.particle_cloud:
-            part.pose.position.x += delta_x
-            part.pose.position.y += delta_y
+
+            theta = part.pose.position.z 
+            #rotation of axis, assume ccw ig 
+            new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
+            new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
+
+            part.pose.position.x += new_x 
+            part.pose.position.y += new_y 
+            part.pose.position.z += yaw_to_quant
 
             # this is wrong: convert to yaws
-            print(part.pose.orientation)
-            print(yaw_to_quant)
-            part.pose.orientation.z += yaw_to_quant[2]
+            #print(part.pose.orientation)
+            #print(yaw_to_quant)
+            #part.pose.orientation.z += yaw_to_quant[2]
 
 
         # ADD NOISE HERE
@@ -497,9 +501,33 @@ class ParticleFilter:
         # Add position noise
         
         # Add orientation noise
+'''
     
+def testy_boi(lst, delta_x, delta_y):
+    for el in lst: 
+        theta = el[2]
+        #rotation of axis, assume ccw ig 
+        new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
+        new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
 
-        
+        el[0] += new_x 
+        el[1] += new_y 
+        #el[2] += yaw_to_quant
+    return lst 
+
+test_lst = [[0,0,1.5], [2,3,0.5], [-5,-6, 6.1], [8,9,4.3]]
+'''
+'''
+expect 
+4.2, -2.7
+6.5, 5.07 
+-2.7, -1.5 
+3.2, 10.1
+'''
+
+#print(testy_boi(test_lst, 3, 4))
+
+
 
 if __name__=="__main__":
     
