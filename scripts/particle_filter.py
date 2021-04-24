@@ -60,21 +60,21 @@ def draw_random_sample(cloud,probs,n):
     We recommend that you fill in this function using random_sample.
     """
     # All test code -------
-    sum = 0
-    for part in cloud:
-        sum += part.w
-    print("original sum = " + str(sum))
+    #sum = 0
+    #for part in cloud:
+        #sum += part.w
+    #print("original sum = " + str(sum))
     # ---------------------
 
     # create a new array of n sampled particles from our cloud
     new_cloud = rand.choices(cloud, weights = probs, k=n) 
 
     # All test code -------
-    sum = 0
-    for part in new_cloud:
-        sum += part.w
+    #sum = 0
+    #for part in new_cloud:
+        #sum += part.w
         #print(part.w)
-    print("new sum = " + str(sum))
+    #print("new sum = " + str(sum))
     # ---------------------
 
     return new_cloud
@@ -154,6 +154,7 @@ class ParticleFilter:
 
 
         # intialize the particle cloud
+        rospy.sleep(2)
         self.initialize_particle_cloud()
 
         self.initialized = True
@@ -177,10 +178,6 @@ class ParticleFilter:
 
         #map is a 384 x 384 grid
 
-        # create a scale to normalize our particles by 
-        w_scale = width // 100
-        h_scale = height // 100
-
         # create a new array that stores the locations of points that are empty
         full_array = []
         for i in range(width):
@@ -199,7 +196,7 @@ class ParticleFilter:
         for part in new_sample:
             #indx, height, orx, ory, res just hard coding in args for now 
             part = convert_to_real_coords(part, 384, -10, -10, 0.05)
-            rand_orientation = np.random.uniform(0, (2 * math.pi))
+            rand_orientation = math.radians(randint(0,359))
             part.append(rand_orientation)
             initial_particle_set.append(part)
 
@@ -252,7 +249,7 @@ class ParticleFilter:
         print("sum = " + str(sum)) # test normalize particles fn
 
     def publish_particle_cloud(self):
-
+        rospy.sleep(1)
         particle_cloud_pose_array = PoseArray()
         particle_cloud_pose_array.header = Header(stamp=rospy.Time.now(), frame_id=self.map_topic)
         particle_cloud_pose_array.poses
