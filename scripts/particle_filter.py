@@ -436,7 +436,7 @@ class ParticleFilter:
                         xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
                         yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                         dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                        prob = compute_prob_zero_centered_gaussian(dist, 0.1)
+                        prob = compute_prob_zero_centered_gaussian(dist, 0.3)
                         if not (math.isnan(prob)):
                             q = q * prob
                         
@@ -503,9 +503,9 @@ class ParticleFilter:
             print(new_x)
             print(new_y)
 
-            part.pose.position.x += new_x 
-            part.pose.position.y += new_y 
-            part.pose.orientation.z += yaw_to_quant[2]
+            part.pose.position.x += (new_x + np.random.normal(scale=0.5))
+            part.pose.position.y += (new_y + np.random.normal(scale=0.5)) 
+            part.pose.orientation.z += (yaw_to_quant[2] + np.random.normal(scale=0.5))
 
             # this is wrong: convert to yaws
             #print(part.pose.orientation)
