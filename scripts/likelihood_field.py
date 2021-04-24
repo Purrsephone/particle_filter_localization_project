@@ -17,11 +17,9 @@ class LikelihoodField(object):
             the closest obstacle
     """
 
-    def __init__(self):
+    def __init__(self, map):
         # grab the map from the map server
-        rospy.wait_for_service("static_map")
-        static_map = rospy.ServiceProxy("static_map", GetMap)
-        self.map = static_map().map
+        self.map = map
 
         # The coordinates of each grid cell in the map
         X = np.zeros((self.map.info.width*self.map.info.height, 2))

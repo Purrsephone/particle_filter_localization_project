@@ -115,8 +115,7 @@ class ParticleFilter:
         # inialize our map
         self.map = OccupancyGrid()
         # haha are we supposed to do this part 3
-        self.likelihood_field = LikelihoodField(self.map)
-
+        self.likelihood_field = None 
         # the number of particles used in the particle filter
         self.num_particles = 5000
 
@@ -132,7 +131,6 @@ class ParticleFilter:
 
         self.odom_pose_last_motion_update = None
 
-
         # Setup publishers and subscribers
 
         # publish the current particle cloud
@@ -144,8 +142,14 @@ class ParticleFilter:
         # subscribe to the map server
         rospy.Subscriber(self.map_topic, OccupancyGrid, self.get_map)
 
+        rospy.sleep(1)
+
+        #self.likelihood_field = LikelihoodField()
+
         # subscribe to the lidar scan from the robot
         rospy.Subscriber(self.scan_topic, LaserScan, self.robot_scan_received)
+    
+
 
         # enable listening for and broadcasting corodinate transforms
         self.tf_listener = TransformListener()
@@ -160,6 +164,7 @@ class ParticleFilter:
 
 
     def get_map(self, data):
+        self.likelihood_field = LikelihoodField(data)
 
         self.map = data
     
@@ -406,42 +411,45 @@ class ParticleFilter:
 
         # TODO
 
-        # Should use this for full list of directions
-        allDirections = range(360)
+        if self.likelihood_field == None:
+            return 
+        else: 
+            # Should use this for full list of directions
+            allDirections = range(360)
 
-        # Starting with cardinal directions to save time
-        cardinal_directions_idxs = [0, 45, 90, 120, 180, 225, 270, 315]
+            # Starting with cardinal directions to save time
+            cardinal_directions_idxs = [0, 45, 90, 120, 180, 225, 270, 315]
 
-        # Code taken from in-class exercise
-        for particle in self.particle_cloud:
-            q = 1 
-            for direction in cardinal_directions_idxs:
-                quat_array = []
-                quat_array.append(particle.pose.orientation.x)
-                quat_array.append(particle.pose.orientation.y)
-                quat_array.append(particle.pose.orientation.z)
-                quat_array.append(particle.pose.orientation.w)
-                euler_points = euler_from_quaternion(quat_array)
-                theta = euler_points[2] 
-                ztk = data.ranges[direction]
-                if(data.ranges[direction] <= 3.5):
-                    xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
-                    yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
-                    dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                    prob = compute_prob_zero_centered_gaussian(dist, 0.1)
-                    if not (math.isnan(prob)):
-                        q = q * prob
-                    
-                    #particle.w = q 
-                    #print(q)
-                    # print(direction)
-                    # print("dist: " + str(dist))
-                    # print("q: " + str(q))
-                    # print("\n")
-            if (math.isnan(q)) or q == 1:
-                print(q)
-                q = 0
-            particle.w = q 
+            # Code taken from in-class exercise
+            for particle in self.particle_cloud:
+                q = 1 
+                for direction in cardinal_directions_idxs:
+                    quat_array = []
+                    quat_array.append(particle.pose.orientation.x)
+                    quat_array.append(particle.pose.orientation.y)
+                    quat_array.append(particle.pose.orientation.z)
+                    quat_array.append(particle.pose.orientation.w)
+                    euler_points = euler_from_quaternion(quat_array)
+                    theta = euler_points[2] 
+                    ztk = data.ranges[direction]
+                    if(data.ranges[direction] <= 3.5):
+                        xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
+                        yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
+                        dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
+                        prob = compute_prob_zero_centered_gaussian(dist, 0.1)
+                        if not (math.isnan(prob)):
+                            q = q * prob
+                        
+                        #particle.w = q 
+                        #print(q)
+                        # print(direction)
+                        # print("dist: " + str(dist))
+                        # print("q: " + str(q))
+                        # print("\n")
+                if (math.isnan(q)) or q == 1:
+                    print(q)
+                    q = 0
+                particle.w = q 
 
         
         # for part in self.particle_cloud:
