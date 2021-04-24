@@ -114,12 +114,11 @@ class ParticleFilter:
 
         # inialize our map
         self.map = OccupancyGrid()
-
         # haha are we supposed to do this part 3
-        self.likelihood_field = LikelihoodField()
+        self.likelihood_field = LikelihoodField(self.map)
 
         # the number of particles used in the particle filter
-        self.num_particles = 10000
+        self.num_particles = 5000
 
         # initialize the particle cloud array
         self.particle_cloud = []
@@ -191,7 +190,7 @@ class ParticleFilter:
         initial_particle_set = []
 
         # set all our initial particles
-        new_sample = rand.sample(full_array, 10000)
+        new_sample = rand.sample(full_array, 5000)
 
         for part in new_sample:
             #indx, height, orx, ory, res just hard coding in args for now 
@@ -283,7 +282,7 @@ class ParticleFilter:
         #print("total weight: " + str(check_sum)) # test if weights sum to 1 or not
 
         # use draw_random_sample to create a new particle cloud
-        new_cloud = draw_random_sample(self.particle_cloud, weights, 10000)
+        new_cloud = draw_random_sample(self.particle_cloud, weights, 5000)
         self.particle_cloud = new_cloud
 
     def robot_scan_received(self, data):
@@ -381,10 +380,10 @@ class ParticleFilter:
             total_yaw += get_yaw_from_pose(p)
 
         # calculate new locations
-        new_x = totalx / 10000
-        new_y = totaly / 10000
+        new_x = totalx / 5000
+        new_y = totaly / 5000
 
-        new_yaw = total_yaw / 10000
+        new_yaw = total_yaw / 5000
         new_quat = quaternion_from_euler(0.0, 0.0, new_yaw)
         # print("quat version of delta: " + str(quaternion_from_euler(0,0,new_delta)))
         #print("old_yaw: " + str(new_yaw))
