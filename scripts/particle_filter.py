@@ -59,23 +59,9 @@ def draw_random_sample(cloud,probs,n):
     """ Draws a random sample of n elements from a given list of choices and their specified probabilities.
     We recommend that you fill in this function using random_sample.
     """
-    # All test code -------
-    #sum = 0
-    #for part in cloud:
-        #sum += part.w
-    #print("original sum = " + str(sum))
-    # ---------------------
 
     # create a new array of n sampled particles from our cloud
     new_cloud = rand.choices(cloud, weights = probs, k=n) 
-
-    # All test code -------
-    #sum = 0
-    #for part in new_cloud:
-        #sum += part.w
-        #print(part.w)
-    #print("new sum = " + str(sum))
-    # ---------------------
 
     return new_cloud
 
@@ -195,7 +181,7 @@ class ParticleFilter:
         initial_particle_set = []
 
         # set all our initial particles
-        new_sample = rand.sample(full_array, 10000)
+        new_sample = rand.sample(full_array, self.num_particles)
 
         for part in new_sample:
             #indx, height, orx, ory, res just hard coding in args for now 
@@ -223,6 +209,7 @@ class ParticleFilter:
 
             # initialize the new particle, where all will have the same weight (1.0)
             new_particle = Particle(p, 1.0)
+            #print(get_yaw_from_pose(p))
 
             # append the particle to the particle cloud
             self.particle_cloud.append(new_particle)
@@ -235,7 +222,6 @@ class ParticleFilter:
 
     def normalize_particles(self):
         # make all the particle weights sum to 1.0
-        
         # TODO
 
         # create sum object to hold total weights
@@ -288,7 +274,7 @@ class ParticleFilter:
 
         # use draw_random_sample to create a new particle cloud
         #new_cloud = draw_random_sample(self.particle_cloud, weights, 10000)
-        self.particle_cloud = draw_random_sample(self.particle_cloud, weights, 10000) 
+        self.particle_cloud = draw_random_sample(self.particle_cloud, weights, self.num_particles) 
 
     def robot_scan_received(self, data):
 
@@ -362,7 +348,6 @@ class ParticleFilter:
                 self.odom_pose_last_motion_update = self.odom_pose
 
 
-
     def update_estimated_robot_pose(self):
         # based on the particles within the particle cloud, update the robot pose estimate
         # use average location of all particles
@@ -387,10 +372,10 @@ class ParticleFilter:
             total_yaw += get_yaw_from_pose(p)
 
         # calculate new locations
-        new_x = totalx / 10000
-        new_y = totaly / 10000
+        new_x = totalx / self.num_particles
+        new_y = totaly / self.num_particles
 
-        new_yaw = total_yaw / 10000
+        new_yaw = total_yaw / self.num_particles
         new_quat = quaternion_from_euler(0.0, 0.0, new_yaw)
         # print("quat version of delta: " + str(quaternion_from_euler(0,0,new_delta)))
         #print("old_yaw: " + str(new_yaw))
@@ -417,7 +402,7 @@ class ParticleFilter:
             allDirections = range(360)
 
             # Starting with cardinal directions to save time
-            cardinal_directions_idxs = [0, 45, 90, 135, 180, 225, 270, 315]
+            cardinal_directions_idxs = [0, 30, 45, 75, 90, 120, 135, 165, 180, 210, 225, 255, 270, 300, 315, 345]
 
             # Code taken from in-class exercise
             for particle in self.particle_cloud:
@@ -429,39 +414,21 @@ class ParticleFilter:
                         xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
                         yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                         dist = self.likelihood_field.get_closest_obstacle_distance(xztk, yztk)
-                        prob = compute_prob_zero_centered_gaussian(dist, 0.1)
+                        prob = compute_prob_zero_centered_gaussian(dist, 0.6) #try increasing
                         if not (math.isnan(prob)):
                             q = q * prob
-                        
-                        #particle.w = q 
-                        #print(q)
-                        # print(direction)
-                        # print("dist: " + str(dist))
-                        # print("q: " + str(q))
-                        # print("\n")
                 if (math.isnan(q)) or q == 1:
-                    print(q)
-                    q = 0
+                    print("nan val")
+                    q = 0.000000001
                 particle.w = q 
-
         
-        # for part in self.particle_cloud:
-        #     print(part.w)
-                    
-            # print(q)
-            # if q != "nan":
-            #     particle.w = q
-            # else:
-            #     particle.w = 0
-            
-
 
     def update_particles_with_motion_model(self):
         # TODO
 
         x_old = self.odom_pose_last_motion_update.pose.position.x
         x_new = self.odom_pose.pose.position.x
-        delta_x = x_new - x_old 
+        delta_x = x_new - x_old
 
         y_old = self.odom_pose_last_motion_update.pose.position.y
         y_new =  self.odom_pose.pose.position.y
@@ -472,54 +439,48 @@ class ParticleFilter:
         delta_yaw = yaw_new - yaw_old 
         #delta_yaw += np.random.normal(scale=0.5) 
 
-        yaw_to_quant = quaternion_from_euler(0.0, 0.0, delta_yaw)
-
-        # We need to use delta yaws here
-        #do some heccin trig to figure out how much to move 
-        
-        
+        # calculate using pythagorean thm
+        total_dist = math.sqrt(delta_x*delta_x+delta_y*delta_y)
+        print("total_dist: " + str(total_dist))
        
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
         #not sure if I am iterating thru this right 
         for part in self.particle_cloud:
-            new_theta = get_yaw_from_pose(part.pose)
-            new_new_theta = np.random.normal(loc = (new_theta + delta_yaw), scale = 0.5)
-            quat_array = []
-            quat_array.append(part.pose.orientation.x)
-            quat_array.append(part.pose.orientation.y)
-            quat_array.append(part.pose.orientation.z)
-            quat_array.append(part.pose.orientation.w)
-            euler_points = euler_from_quaternion(quat_array)
-            theta = euler_points[2] 
-            new_new_new_theta = quaternion_from_euler(0, 0, new_new_theta)
+
+            # new approach (add noise to yaw and then convert back to quat)
+            theta = get_yaw_from_pose(part.pose)
+            print("theta: " + str(theta))
+            theta_with_noise = np.random.normal(loc = (theta), scale = 0.2) # do we need to consider direction?
+            #print(theta_with_noise)
+
+            quat_noise = quaternion_from_euler(0, 0, theta_with_noise + delta_yaw)
+            #print(theta_with_noise)
+
             #rotation of axis, assume ccw ig 
-            new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
-            new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
-            #print(new_x)
-            #print(new_y)
+            # new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
+            # new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
+            theta_diff = yaw_new - theta
+            new_x = (delta_x * math.cos(theta_diff)) + (delta_y * math.sin(theta_diff))
+            new_y = (-delta_x * math.sin(theta_diff)) + (delta_y * math.cos(theta_diff))
 
-            part.pose.position.x = (delta_x + np.random.normal(loc = new_x, scale=0.95))
-            part.pose.position.y = (delta_y + np.random.normal(loc = new_y, scale=0.95)) 
-            #part.pose.orientation.z += (yaw_to_quant[2])
-            part.pose.orientation.x = new_new_new_theta[0]
-            part.pose.orientation.y = new_new_new_theta[1]
-            part.pose.orientation.z = new_new_new_theta[2]
-            part.pose.orientation.w = new_new_new_theta[3]
+            # calculate using pythagorean thm
+            x = math.cos(theta) * total_dist
+            y = math.sin(theta) * total_dist
+            print("old x: " + str(part.pose.position.x))
+            print("new x: " + str(new_x))
+            print("old y: " + str(part.pose.position.y))
+            print("new y: " + str(new_y))
+
+            part.pose.position.x += np.random.normal(loc = new_x, scale=0.2)
+            part.pose.position.y += np.random.normal(loc = new_y, scale=0.2) 
+            part.pose.orientation.x = quat_noise[0]
+            part.pose.orientation.y = quat_noise[1]
+            part.pose.orientation.z = quat_noise[2]
+            part.pose.orientation.w = quat_noise[3]
 
 
-            # this is wrong: convert to yaws
-            #print(part.pose.orientation)
-            #print(yaw_to_quant)
-            #part.pose.orientation.z += yaw_to_quant[2]
-
-
-        # ADD NOISE HERE
-
-        # Add position noise
-        
-        # Add orientation noise
 '''
     
 def testy_boi(lst, delta_x, delta_y):
