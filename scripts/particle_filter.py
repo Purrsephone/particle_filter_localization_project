@@ -117,7 +117,7 @@ class ParticleFilter:
         # haha are we supposed to do this part 3
         self.likelihood_field = None 
         # the number of particles used in the particle filter
-        self.num_particles = 5000
+        self.num_particles = 10000
 
         # initialize the particle cloud array
         self.particle_cloud = []
@@ -195,7 +195,7 @@ class ParticleFilter:
         initial_particle_set = []
 
         # set all our initial particles
-        new_sample = rand.sample(full_array, 5000)
+        new_sample = rand.sample(full_array, 10000)
 
         for part in new_sample:
             #indx, height, orx, ory, res just hard coding in args for now 
@@ -287,8 +287,8 @@ class ParticleFilter:
         #print("total weight: " + str(check_sum)) # test if weights sum to 1 or not
 
         # use draw_random_sample to create a new particle cloud
-        new_cloud = draw_random_sample(self.particle_cloud, weights, 5000)
-        self.particle_cloud = new_cloud
+        #new_cloud = draw_random_sample(self.particle_cloud, weights, 10000)
+        self.particle_cloud = draw_random_sample(self.particle_cloud, weights, 10000) 
 
     def robot_scan_received(self, data):
 
@@ -371,6 +371,8 @@ class ParticleFilter:
         #print(self.robot_estimate.orientation)
 
         #find total x and y locations
+        print("LENGTH")
+        print(len(self.particle_cloud))
         totalx = 0
         totaly = 0
         total_yaw = 0
@@ -385,10 +387,10 @@ class ParticleFilter:
             total_yaw += get_yaw_from_pose(p)
 
         # calculate new locations
-        new_x = totalx / 5000
-        new_y = totaly / 5000
+        new_x = totalx / 10000
+        new_y = totaly / 10000
 
-        new_yaw = total_yaw / 5000
+        new_yaw = total_yaw / 10000
         new_quat = quaternion_from_euler(0.0, 0.0, new_yaw)
         # print("quat version of delta: " + str(quaternion_from_euler(0,0,new_delta)))
         #print("old_yaw: " + str(new_yaw))
@@ -403,9 +405,6 @@ class ParticleFilter:
         self.robot_estimate.orientation.z = new_quat[2]
         self.robot_estimate.orientation.w = new_quat[3]
 
-        #print("new_yaw: "+ str(get_yaw_from_pose(self.robot_estimate)))
-
-
     
     def update_particle_weights_with_measurement_model(self, data):
 
@@ -418,25 +417,19 @@ class ParticleFilter:
             allDirections = range(360)
 
             # Starting with cardinal directions to save time
-            cardinal_directions_idxs = [0, 45, 90, 120, 180, 225, 270, 315]
+            cardinal_directions_idxs = [0, 45, 90, 135, 180, 225, 270, 315]
 
             # Code taken from in-class exercise
             for particle in self.particle_cloud:
                 q = 1 
                 for direction in cardinal_directions_idxs:
-                    quat_array = []
-                    quat_array.append(particle.pose.orientation.x)
-                    quat_array.append(particle.pose.orientation.y)
-                    quat_array.append(particle.pose.orientation.z)
-                    quat_array.append(particle.pose.orientation.w)
-                    euler_points = euler_from_quaternion(quat_array)
-                    theta = euler_points[2] 
+                    theta = get_yaw_from_pose(particle.pose)
                     ztk = data.ranges[direction]
                     if(data.ranges[direction] <= 3.5):
                         xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
                         yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
-                        dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                        prob = compute_prob_zero_centered_gaussian(dist, 0.6)
+                        dist = self.likelihood_field.get_closest_obstacle_distance(xztk, yztk)
+                        prob = compute_prob_zero_centered_gaussian(dist, 0.1)
                         if not (math.isnan(prob)):
                             q = q * prob
                         
@@ -504,11 +497,11 @@ class ParticleFilter:
             #rotation of axis, assume ccw ig 
             new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
             new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
-            print(new_x)
-            print(new_y)
+            #print(new_x)
+            #print(new_y)
 
-            part.pose.position.x = (new_x + np.random.normal(loc = new_x, scale=0.5))
-            part.pose.position.y = (new_y + np.random.normal(loc = new_y, scale=0.5)) 
+            part.pose.position.x = (delta_x + np.random.normal(loc = new_x, scale=0.95))
+            part.pose.position.y = (delta_y + np.random.normal(loc = new_y, scale=0.95)) 
             #part.pose.orientation.z += (yaw_to_quant[2])
             part.pose.orientation.x = new_new_new_theta[0]
             part.pose.orientation.y = new_new_new_theta[1]
