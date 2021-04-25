@@ -436,7 +436,7 @@ class ParticleFilter:
                         xztk = particle.pose.position.x + (ztk * math.cos(theta + math.radians(direction)))
                         yztk = particle.pose.position.y  + (ztk * math.sin(theta + math.radians(direction)))
                         dist = LikelihoodField.get_closest_obstacle_distance(self.likelihood_field, xztk, yztk)
-                        prob = compute_prob_zero_centered_gaussian(dist, 0.3)
+                        prob = compute_prob_zero_centered_gaussian(dist, 0.6)
                         if not (math.isnan(prob)):
                             q = q * prob
                         
@@ -477,6 +477,7 @@ class ParticleFilter:
         yaw_old = get_yaw_from_pose(self.odom_pose_last_motion_update.pose)
         yaw_new = get_yaw_from_pose(self.odom_pose.pose)
         delta_yaw = yaw_new - yaw_old 
+        #delta_yaw += np.random.normal(scale=0.5) 
 
         yaw_to_quant = quaternion_from_euler(0.0, 0.0, delta_yaw)
 
@@ -490,6 +491,8 @@ class ParticleFilter:
 
         #not sure if I am iterating thru this right 
         for part in self.particle_cloud:
+            new_theta = get_yaw_from_pose(part.pose)
+            new_new_theta = np.random.normal(loc = (new_theta + delta_yaw), scale = 0.5)
             quat_array = []
             quat_array.append(part.pose.orientation.x)
             quat_array.append(part.pose.orientation.y)
@@ -497,15 +500,21 @@ class ParticleFilter:
             quat_array.append(part.pose.orientation.w)
             euler_points = euler_from_quaternion(quat_array)
             theta = euler_points[2] 
+            new_new_new_theta = quaternion_from_euler(0, 0, new_new_theta)
             #rotation of axis, assume ccw ig 
             new_x = (delta_x * math.cos(theta)) + (delta_y * math.sin(theta))
             new_y = (-delta_x * math.sin(theta)) + (delta_y * math.cos(theta))
             print(new_x)
             print(new_y)
 
-            part.pose.position.x += (new_x + np.random.normal(scale=0.5))
-            part.pose.position.y += (new_y + np.random.normal(scale=0.5)) 
-            part.pose.orientation.z += (yaw_to_quant[2] + np.random.normal(scale=0.5))
+            part.pose.position.x = (new_x + np.random.normal(loc = new_x, scale=0.5))
+            part.pose.position.y = (new_y + np.random.normal(loc = new_y, scale=0.5)) 
+            #part.pose.orientation.z += (yaw_to_quant[2])
+            part.pose.orientation.x = new_new_new_theta[0]
+            part.pose.orientation.y = new_new_new_theta[1]
+            part.pose.orientation.z = new_new_new_theta[2]
+            part.pose.orientation.w = new_new_new_theta[3]
+
 
             # this is wrong: convert to yaws
             #print(part.pose.orientation)
