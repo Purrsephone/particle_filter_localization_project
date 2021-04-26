@@ -20,6 +20,8 @@ We will work on initializing our particle cloud and updating our particles locat
 
 ## WriteUp 
 
+![particle cloud around robot](./robot.gif)
+
 *Objectives description*  The goal of this project was to pinpoint the location of the turtlebot via the monte carlo localization method. Ideally, we want the particle cloud to be very close to the robot and to continue to follow the robot as it moves.    
 
 *High level description*  We first needed to pick a random sample of particles that evenly covered the possible locations of the robot. We compared the particles' distances from nearby objects to the robot's sensor readings. We picked particles that had relatively high probabilities of being near the robot based on the similarity of the reading. Throughout this process, we updated our belief of where the robot is actually located by taking a fair average of the particles' positions, which represents our current best guess. Additionally, we added noise to the particles' position to counteract imprecise readings. This method eventually resulted in the particles converging around the robot's location.      
@@ -59,6 +61,6 @@ If given more time, we could play around with the accuracy vs. runtime trade-off
 *Learn how to use git merge* We were terrified of merge conflicts so we developed a system that circumvented using merge. We feel that our work flow would have been better if we took the time to figure out how to use git merge.    
 *Start with the simple case* As suggested by the course staff, it is best to debug by examining the smaller, simpler cases. For example, we were able to observe parts of our program better when we reduced the number of particles from 10000 to 4.   
 
-![particle cloud around robot](./robot.gif)
+
 
 
