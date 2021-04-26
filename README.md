@@ -59,4 +59,6 @@ If given more time, we could play around with the accuracy vs. runtime trade-off
 *Learn how to use git merge* We were terrified of merge conflicts so we developed a system that circumvented using merge. We feel that our work flow would have been better if we took the time to figure out how to use git merge.    
 *Start with the simple case* As suggested by the course staff, it is best to debug by examining the smaller, simpler cases. For example, we were able to observe parts of our program better when we reduced the number of particles from 10000 to 4.   
 
+![particle cloud around robot](./robot.gif)
+
 
